@@ -1,0 +1,9 @@
+*.tmp
+*.bak
+error.log
+# 生产文件（仅屏蔽根目录，public/ 下的模板不受影响）
+/00_MEMOHACK_BOOT.md
+/CURRENT_STATE.md
+/manual.md
+.agents/
+.DS_Store

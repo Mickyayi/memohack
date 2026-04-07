@@ -1,0 +1,27 @@
+# 📖 {{PROJECT_NAME}} 专家手册 (manual.md)
+> **项目模式**: \`MEMORY_MODE: ADVANCED\` (默认为进阶模式，支持补丁预览)
+
+---
+
+## 🏗️ 项目架构全景 (System Map)
+- **Tech Stack**: {{TECH_STACK}}
+- **项目路径**: {{PROJECT_PATH}}
+- **Memory Storage**: Human-readable Markdown files.
+- **Sync Logic**: 使用 \`vibe_sync.py --confirm\` 合并补丁。
+
+---
+
+## 📚 技术资产沉淀 (Knowledge Base)
+
+### #MH-BOOT: 自动化规则加载
+- 经验：Antigravity 会自动合并 \`.agents/rules\` 下的所有 Markdown 文件作为系统指令。
+- 逻辑：通过在规则中定义严格的引导流程，实现 AI 的长期记忆对齐。
+
+---
+
+## 🩺 诊断与工具箱 (Diagnostic Toolbox)
+- 权限检查：\`ls -ld .agents/rules\`
+- 手动同步：\`python3 skills/memohack/scripts/vibe_sync.py\`
+
+---
+*Created At: {{NOW}}*
