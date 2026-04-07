@@ -10,7 +10,7 @@
 ---
 
 ## 📍 验证路径点 (Checkpoints)
-- **{{NOW}}** [#MH-BOOT]: 顺利完成 MemoHack 初始化。 [Status: OK]
+- **{{NOW}}** [#MH-BOOT]: 顺利完成 MemoHack 深度扫描初始化。技术栈: {{TECH_STACK}}, 核心框架: {{FRAMEWORKS}} [Status: OK]
 
 ---
 
@@ -20,4 +20,4 @@
 - **禁止项 3**: 本项目技术栈为 {{TECH_STACK}}，请遵循相关代码规范。
 
 ---
-*Main entry files: {{MAIN_FILES}}*
+*入口文件: {{MAIN_FILES}}*
