@@ -21,15 +21,20 @@ GLOBAL_RULES = """
 """
 
 class MemohackInstaller:
-    def __init__(self, target_dir):
+    def __init__(self, target_dir, force_here=False):
         # 核心：定位仓库自身的根目录
         self.repo_root = os.path.dirname(os.path.abspath(__file__))
         
-        # 智能寻址：如果在工具目录内运行，且没指定目标，则尝试初始化父目录
+        # 智能寻址：如果在工具目录内运行，且没指定强制当前目录，则尝试初始化父目录
         current_abs = os.path.abspath(target_dir)
-        if current_abs == self.repo_root:
-            print(f"[SMART] 检测到在 MemoHack 目录运行，自动将目标设定为父目录: ..")
-            self.target_dir = os.path.abspath(os.path.join(current_abs, ".."))
+        if current_abs == self.repo_root and not force_here:
+            parent_dir = os.path.abspath(os.path.join(current_abs, ".."))
+            print("\n" + "!"*40)
+            print(f"检测到在工具目录运行。为了更好的记忆体验，")
+            print(f"MemoHack 将自动将目标设定为【父项目根目录】:")
+            print(f"👉 {parent_dir}")
+            print("!"*40 + "\n")
+            self.target_dir = parent_dir
         else:
             self.target_dir = current_abs
             
@@ -106,7 +111,7 @@ class MemohackInstaller:
         print(f"[SUCCESS] Skills 全量同步成功")
         return True
 
-    def setup_workspace_files(self, scan=False):
+    def setup_workspace_files(self, scan=False, force=False):
         """从 public 目录动态读取并创建记忆文件"""
         print(f"[INIT] 正在从 public 资产库初始化记忆文件...")
         now = datetime.now().strftime("%Y-%m-%d %H:%M")
@@ -132,7 +137,7 @@ class MemohackInstaller:
             source_path = os.path.join(self.repo_root, "public", fname)
             target_path = os.path.join(self.target_dir, fname)
 
-            if os.path.exists(target_path): 
+            if os.path.exists(target_path) and not force: 
                 print(f"[SKIP] {fname} 已存在，跳过。")
                 continue
             
@@ -149,7 +154,7 @@ class MemohackInstaller:
             
             with open(target_path, 'w', encoding='utf-8') as f:
                 f.write(content)
-            print(f"[DONE] 已由模版库创建 {fname}")
+            print(f"[DONE] {'覆盖' if force and os.path.exists(target_path) else '创建'}了 {fname}")
 
         # 自动部署 vibe_sync.py 到目标项目的 skills 目录
         sync_src = os.path.join(self.repo_root, "skills", "memohack", "scripts", "vibe_sync.py")
@@ -178,18 +183,20 @@ class MemohackInstaller:
 def main():
     parser = argparse.ArgumentParser(description="MemoHack 仓库安装器 (Repo-based / Public-Assets)")
     parser.add_argument("path", nargs="?", default=os.getcwd(), help="指定安装的目标路径 (默认为当前目录)")
-    parser.add_argument("--force", action="store_true", help="强制覆盖已有的 Skills")
+    parser.add_argument("--force", action="store_true", help="强制覆盖已有的 Skills 或模板")
+    parser.add_argument("--here", action="store_true", help="强制在当前工具目录下初始化记忆文件，不触发智能寻址")
     parser.add_argument("--global_only", action="store_true", help="仅激活全局规则")
     
     args = parser.parse_args()
-    installer = MemohackInstaller(args.path)
+    installer = MemohackInstaller(args.path, force_here=args.here)
 
     # 全能一键模式
     if not args.global_only:
         print("🚀 [MEMOHACK] 正在启动仓库级资产分发流程...")
         installer.setup_global()
         installer.scan_project()
-        installer.setup_workspace_files(scan=True)
+        installer.setup_workspace_files(scan=True, force=args.force)
+        # 这里的 force 对 sync_skills 生效
         installer.sync_skills(force=args.force)
         print("\n✨ [SUCCESS] 全部公共资产已从仓库同步部署完成！")
         return
