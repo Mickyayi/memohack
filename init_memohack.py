@@ -22,29 +22,69 @@ GLOBAL_RULES = """
 
 class MemohackInstaller:
     def __init__(self, target_dir):
-        self.target_dir = os.path.abspath(target_dir)
         # 核心：定位仓库自身的根目录
         self.repo_root = os.path.dirname(os.path.abspath(__file__))
+        
+        # 智能寻址：如果在工具目录内运行，且没指定目标，则尝试初始化父目录
+        current_abs = os.path.abspath(target_dir)
+        if current_abs == self.repo_root:
+            print(f"[SMART] 检测到在 MemoHack 目录运行，自动将目标设定为父目录: ..")
+            self.target_dir = os.path.abspath(os.path.join(current_abs, ".."))
+        else:
+            self.target_dir = current_abs
+            
         self.tech_stack = "Unknown"
         self.main_files = []
 
     def scan_project(self):
-        """扫描目标项目画像"""
-        print("[SCAN] 正在分析项目结构...")
-        files = [f for f in os.listdir(self.target_dir) if os.path.isfile(os.path.join(self.target_dir, f))]
+        """深度扫描目标项目画像 (Depth=2)"""
+        print(f"[SCAN] 正在分析项目结构: {self.target_dir}")
         
+        all_files = []
+        # 递归扫描最多 2 层深度
+        base_depth = self.target_dir.count(os.sep)
+        for root, dirs, files in os.walk(self.target_dir):
+            # 排除干扰项
+            if any(p in root for p in ['.git', '__pycache__', 'node_modules', 'venv', '.agents']):
+                continue
+                
+            depth = root.count(os.sep) - base_depth
+            if depth > 2:
+                continue
+            
+            for f in files:
+                rel_path = os.path.relpath(os.path.join(root, f), self.target_dir)
+                all_files.append(rel_path)
+
+        # 识别技术栈
         stacks = []
-        if 'package.json' in files: stacks.append("Node.js")
-        if any(f.endswith('.py') for f in files): stacks.append("Python")
-        if 'go.mod' in files: stacks.append("Go")
+        if any(f.endswith('package.json') for f in all_files): stacks.append("Node.js")
+        if any(f.endswith('.py') for f in all_files): stacks.append("Python")
+        if any(f.endswith('go.mod') for f in all_files): stacks.append("Go")
+        if any(f.endswith('Cargo.toml') for f in all_files): stacks.append("Rust")
         self.tech_stack = " / ".join(stacks) if stacks else "Generic"
 
-        candidates = [f for f in files if f.split('.')[-1] in ['py', 'js', 'go', 'ts']]
+        # 识别入口文件
+        entry_patterns = ['main', 'app', 'index', 'server', 'start']
+        candidates = [f for f in all_files if f.split('.')[-1] in ['py', 'js', 'go', 'ts', 'rs']]
+        
         for f in candidates:
-            if any(p in f for p in ['main', 'app', 'index', 'start', 'server']):
+            fname = os.path.basename(f).lower()
+            if any(p in fname for p in entry_patterns):
                 self.main_files.append(f)
+        
+        # 兜底：如果没找到 main，取前三个代码文件
         if not self.main_files and candidates:
             self.main_files = candidates[:3]
+
+        # 打印项目画像
+        print("\n" + "="*30)
+        print("📊 项目画像报告 (Project Portrait)")
+        print("="*30)
+        print(f"📍 目标路径 : {self.target_dir}")
+        print(f"🛠️ 技术栈   : {self.tech_stack}")
+        print(f"🚀 入口文件 : {', '.join(self.main_files) if self.main_files else 'None'}")
+        print("="*30 + "\n")
 
     def sync_skills(self, force=False):
         """同步技能模块"""
@@ -137,14 +177,15 @@ class MemohackInstaller:
 
 def main():
     parser = argparse.ArgumentParser(description="MemoHack 仓库安装器 (Repo-based / Public-Assets)")
+    parser.add_argument("path", nargs="?", default=os.getcwd(), help="指定安装的目标路径 (默认为当前目录)")
     parser.add_argument("--force", action="store_true", help="强制覆盖已有的 Skills")
     parser.add_argument("--global_only", action="store_true", help="仅激活全局规则")
     
     args = parser.parse_args()
-    installer = MemohackInstaller(os.getcwd())
+    installer = MemohackInstaller(args.path)
 
     # 全能一键模式
-    if len(sys.argv) == 1 or (len(sys.argv) == 2 and args.force):
+    if not args.global_only:
         print("🚀 [MEMOHACK] 正在启动仓库级资产分发流程...")
         installer.setup_global()
         installer.scan_project()
