@@ -63,19 +63,36 @@ PYTHON_FRAMEWORKS = {
 
 class MemohackInstaller:
     def __init__(self, target_dir, force_here=False):
-        self.repo_root = os.path.dirname(os.path.abspath(__file__))
+        # 核心：定位仓库自身的根目录
+        self.repo_root = os.path.realpath(os.path.dirname(os.path.abspath(__file__)))
+        
+        # 判定用户是否显式输入了路径参数 (长度为1或带参数的命令行)
+        # sys.argv 结构: ['init_memohack.py', 'path', '--flags']
+        has_explicit_path = False
+        if len(sys.argv) > 1:
+            for arg in sys.argv[1:]:
+                if not arg.startswith('-'):
+                    has_explicit_path = True
+                    break
 
-        current_abs = os.path.abspath(target_dir)
-        if current_abs == self.repo_root and not force_here:
-            parent_dir = os.path.abspath(os.path.join(current_abs, ".."))
+        # 智能寻址：如果在工具目录内运行，且【没指定强制当前目录】且【没显式提供路径参数】，则初始化父目录
+        current_abs = os.path.realpath(os.path.abspath(target_dir))
+        
+        if current_abs == self.repo_root and not force_here and not has_explicit_path:
+            parent_dir = os.path.dirname(current_abs)
             print("\n" + "!"*50)
-            print(f"  检测到在工具目录运行。")
-            print(f"  MemoHack 将自动为【父项目】初始化记忆引擎:")
+            print(f"  [SMART TARGET] 检测到在工具目录运行且未指定路径。")
+            print(f"  MemoHack 自动切换目标至【父项目根目录】:")
             print(f"  👉 {parent_dir}")
+            print("  （提示：若要在当前目录初始化，请使用 --here 或显式指定 '.'）")
             print("!"*50 + "\n")
             self.target_dir = parent_dir
         else:
             self.target_dir = current_abs
+            if current_abs == self.repo_root:
+                print(f"\n📍 [LOCAL] 目标锁定为当前工具目录: {self.target_dir}\n")
+            else:
+                print(f"\n📍 [TARGET] 目标锁定为指定目录: {self.target_dir}\n")
 
         # 项目画像数据容器
         self.portrait = {
